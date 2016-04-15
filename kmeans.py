@@ -60,18 +60,19 @@ def cluster(data, num_means, max_iters=1000, distance=cosine_similarity):
     dists = distance(data, centroids)
     # we now have a row for each data point
     # each row has k values which are the distances
-    new_assignments = tf.argmax(dists, 1)
+    new_assignments = tf.argmin(dists, 1)
     assignment_change = tf.reduce_any(tf.not_equal(assignments,
                                                    new_assignments))
     # now we have to calculate new means
     sums = tf.unsorted_segment_sum(data, new_assignments, num_means)
-    new_means = sums / tf.to_double(tf.shape(sums)[0])
+    counts = tf.unsorted_segment_sum(tf.ones_like(data), new_assignments, num_means)
+    new_means = sums / counts
     # all that is left is setting up some ops to ensure that we update
     # variables.
     with tf.control_dependencies([assignment_change]):
         update = tf.tuple([centroids.assign(new_means),
                            assignments.assign(new_assignments)])
-
+        
     sess = tf.Session()
     sess.run(tf.initialize_all_variables())
     # good to go
@@ -96,7 +97,7 @@ def cluster(data, num_means, max_iters=1000, distance=cosine_similarity):
 
 
 if __name__ == '__main__':
-    data = np.random.multivariate_normal(np.zeros(2),
+    data = np.random.multivariate_normal(np.array([-5, -5]),
                                          cov=np.identity(2),
                                          size=(500))
     data = np.vstack(

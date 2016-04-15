@@ -29,7 +29,7 @@ def _maybe_download(data_path='reuters21578.tar.gz'):
     if not os.path.exists(data_path):
         # better grab it
         logging.info('Data not found, downloading')
-        url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/reuters21578-mld/reuters21578.tar.gz'
+        url = 'http://archive.ics.uci.edu/ml/machine-learning-databases/reuters21578-mld/reuters21578.tar.gz'
         req = requests.get(url, stream=True)
         with open(data_path, 'wb') as f:
             for chunk in req.iter_content(chunk_size=1024):
