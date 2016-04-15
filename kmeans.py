@@ -13,7 +13,7 @@ def l2_norm(a, reduction_indices=None, name='l2-norm'):
 
 def cosine_similarity(a, b, name='cos-sim'):
     """Construct ops that return the cosine distance between a and b.
-    Assumes a and b are rank 1 tensors."""
+    Assumes a and b are rank 1 tensors or a batch of them"""
     with tf.name_scope(name):
         prod = tf.matmul(a, b, transpose_b=True)
         a_norm = l2_norm(a)
@@ -21,7 +21,19 @@ def cosine_similarity(a, b, name='cos-sim'):
         return prod / (a_norm * b_norm)
 
 
-def cluster(data, num_means, max_iters=1000):
+def euclidean(a, b, name='euclidean-dist'):
+    """Finds the euclidean distance between a and b ie the l2 norm of the
+    difference. Returns pair-wise"""
+    with tf.name_scope(name):
+        num_bs = b.get_shape()[0].value
+        num_as = a.get_shape()[0].value
+        dims = a.get_shape()[1].value  # assume the same for a and b
+        tile_a = tf.reshape(tf.tile(a, [1, num_bs]), [num_as, num_bs, dims])
+        tile_b = tf.reshape(tf.tile(b, [num_as, 1]), [num_as, num_bs, dims])
+        return l2_norm(tile_a - tile_b, reduction_indices=2)
+
+
+def cluster(data, num_means, max_iters=1000, distance=cosine_similarity):
     """Clusters the data using k-means.
 
     Args:
@@ -45,19 +57,10 @@ def cluster(data, num_means, max_iters=1000):
     centroids = tf.Variable(tf.slice(data.initialized_value(),
                                      [0, 0],
                                      [num_means, num_features]))
-    # next we need to figureout how to compute the similarity between each
-    # centroid and each data point
-    # cos similarity actually makes this pretty handy
-    # we want the dot product of each row of data with each row of
-    # centroids.
-    dots = tf.matmul(tf.nn.l2_normalize(data, 0),
-                     tf.nn.l2_normalize(centroids, 0),
-                     transpose_b=True)
+    dists = distance(data, centroids)
     # we now have a row for each data point
-    # each row has k values which are the dot products.
-    # because we normalized first, they are genuinely the cosine similarities.
-    # so we take the arg max across columns to get the new assignments
-    new_assignments = tf.argmax(dots, 1)
+    # each row has k values which are the distances
+    new_assignments = tf.argmax(dists, 1)
     assignment_change = tf.reduce_any(tf.not_equal(assignments,
                                                    new_assignments))
     # now we have to calculate new means
@@ -93,5 +96,13 @@ def cluster(data, num_means, max_iters=1000):
 
 
 if __name__ == '__main__':
-    data = np.random.uniform(high=100.0, size=(5000, 200))
-    means, clusters = cluster(data, 60)
+    data = np.random.multivariate_normal(np.zeros(2),
+                                         cov=np.identity(2),
+                                         size=(500))
+    data = np.vstack(
+        (data, np.random.multivariate_normal(np.zeros(2)+10,
+                                             cov=np.identity(2),
+                                             size=(300))))
+    
+    means, clusters = cluster(data, 2, distance=euclidean)
+    print(means)
