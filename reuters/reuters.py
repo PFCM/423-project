@@ -135,7 +135,8 @@ def _log_stats(data):
 
 def get_reuters(data_dir='data', level='word', min_reps=5):
     """Get the dataset as (training, test, vocab).
-    first two are sequences of sequences of ints, vocab is
+    first two are tuples containing a sequence, the labels and what part
+    split they are in, vocab is
     a map of strings->int ids.
     """
     if not os.path.exists(data_dir):
@@ -159,7 +160,7 @@ def get_reuters(data_dir='data', level='word', min_reps=5):
             break  # must have them all
         to_remove.add(word)
         del vocab_freqs[word]
-    logging.info('..vocab size %d', len(vocab_freqs))
+    logging.info('Removing %d words from vocab.', len(to_remove))
     for item in all_data:
         item[0] = ['<UNK>' if i in to_remove else i for i in item[0]]
     symbol_to_id = {
@@ -167,12 +168,16 @@ def get_reuters(data_dir='data', level='word', min_reps=5):
         '<UNK>': 1,
         '<STOP>': 2,
         '<PUNCT>': 3,
-        '<PAD>': 5
+        '<PAD>': 4
     }
-    id_num = 6  # start after specials
+    id_num = 5  # start after specials
     for symbol in vocab_freqs:
-        symbol_to_id[symbol] = id_num
-        id_num += 1
+        if symbol not in symbol_to_id:
+            symbol_to_id[symbol] = id_num
+            id_num += 1
+    logging.info('..last id %d', id_num)
+    logging.info('..vocab size %d', len(symbol_to_id))
+    
     for item in all_data:
         item[0] = [symbol_to_id[i] for i in item[0]]
     training = [item for item in all_data if item[2] == 'train']
