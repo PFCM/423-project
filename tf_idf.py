@@ -2,10 +2,9 @@
 Just simple numpy implementation, designed to run once.
 """
 import collections
+import logging
 
 import numpy as np
-
-import reuters
 
 
 def tf_idf(documents, vocab=None, counts=None):
@@ -17,7 +16,8 @@ def tf_idf(documents, vocab=None, counts=None):
             list of symbols.
         vocab: a dictionary of symbol->int, where the numbers represent the
             index of the word's weight in the final vector. If not specified,
-            (default) we assume that documents is in fact already a list of ints.
+            (default) we assume that documents is in fact already a list of
+            ints.
         counts: a dictionary of symbol->count across the whole corpus. If not
             provided, will be generated.
 
@@ -29,6 +29,7 @@ def tf_idf(documents, vocab=None, counts=None):
         counts = collections.Counter()
         for document in documents:
             for symbol in document:
+                print(symbol)
                 counts[symbol] += 1
     total_symbols = sum(counts.values())
     # let's make an inverse document frequency vector so we can do a big
@@ -65,8 +66,17 @@ def _term_freqs(doc, vocab=None, num_symbols=None):
 
 def main():
     """If run as a script, looks for data and if not found, generates it."""
+    import reuters
     training, test, vocab = reuters.get_reuters()
+    train_vectors = tf_idf(training)
+    test_vectors = tf_idf(test)
+    # write the data :)
+    with open('train_tf-idf', 'w') as f:
+        np.savetxt(f, train_vectors)
+    with open('test_tf-idf', 'w') as f:
+        np.savetxt(f, test_vectors)
 
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
     main()

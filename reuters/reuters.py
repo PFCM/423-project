@@ -43,6 +43,20 @@ def _maybe_download(data_path='reuters21578.tar.gz'):
     return data_path
 
 
+def _get_vocab_filename(level):
+    """Gets a filename for the vocab file
+
+    Args:
+        level: whether we are interested in word or character
+
+    Returns:
+        str: the filename.
+    """
+    return os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        'vocab-{}.txt'.format(level))
+
+
 def _read_one_file(filename, vocab_freqs, token_func):
     """Reads one whole file and pulls out the data we need.
     Returns a list of lists looking like [text, label, set, id] where
@@ -81,7 +95,7 @@ def _read_one_file(filename, vocab_freqs, token_func):
 
 
 def word_split(text):
-    """This is our main tokeniser, should do stemming etc, does not."""
+    """This is our main tokeniser, could do stemming etc, does not."""
     # first remove caps
     text = text.casefold()
     # replace numbers, including with commas or .
@@ -164,6 +178,12 @@ def get_reuters(data_dir='data', level='word', min_reps=5):
     training = [item for item in all_data if item[2] == 'train']
     test = [item for item in all_data if item[2] != 'train']
 
+    vocab_filename = _get_vocab_filename(level)
+    if not os.path.exists(vocab_filename):
+        logging.info('..no existing vocab file, writing.')
+        _write_vocab(symbol_to_id, vocab_filename)
+        logging.info('..written to "%s"', vocab_filename)
+
     return (training, test, symbol_to_id)
 
 
@@ -188,7 +208,7 @@ def check_tf_data_exists(data_dir='data/tf-records', records_per=500):
         os.mkdir(data_dir)
         logging.info('No tf record data, fixing')
         training, test, vocab = get_reuters()
-        _write_vocab(vocab, os.path.join(data_dir, 'vocab.csv'))
+        _write_vocab(vocab, os.path.join(data_dir,))
         filename = os.path.join(data_dir, 'train-data')
         logging.info('writing training set')
         _write_tfrecords(training, filename, records_per)
