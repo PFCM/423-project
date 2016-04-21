@@ -133,6 +133,17 @@ def _log_stats(data):
     logging.info('..min: %d', shortest)
 
 
+def get_special_ids():
+    """returns a dict of the special ids"""
+    return {
+        '<GO>': 0,
+        '<UNK>': 1,
+        '<STOP>': 2,
+        '<PUNCT>': 3,
+        '<PAD>': 4
+    }
+    
+
 def get_reuters(data_dir='data', level='word', min_reps=5):
     """Get the dataset as (training, test, vocab).
     first two are tuples containing a sequence, the labels and what part
@@ -163,13 +174,7 @@ def get_reuters(data_dir='data', level='word', min_reps=5):
     logging.info('Removing %d words from vocab.', len(to_remove))
     for item in all_data:
         item[0] = ['<UNK>' if i in to_remove else i for i in item[0]]
-    symbol_to_id = {
-        '<GO>': 0,
-        '<UNK>': 1,
-        '<STOP>': 2,
-        '<PUNCT>': 3,
-        '<PAD>': 4
-    }
+    symbol_to_id = get_special_ids()
     id_num = 5  # start after specials
     for symbol in vocab_freqs:
         if symbol not in symbol_to_id:
