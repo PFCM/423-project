@@ -192,6 +192,12 @@ def get_reuters(data_dir='data', level='word', min_reps=5):
     return (training, test, symbol_to_id)
 
 
+def get_vocab():
+    """Gets the words if the file is there"""
+    with open(_get_vocab_filename('word')) as f:
+        return {a: int(b) for a, b in (line.split(',') for line in f)}
+
+
 def _int64_feature(value):
     return tf.train.Feature(int64_list=tf.train.Int64List(value=value))
 
