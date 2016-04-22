@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 
 from six.moves import xrange
+import random
 
 import numpy as np
 import tensorflow as tf
@@ -49,9 +50,9 @@ class SequenceAutoencoder(object):
         self.batch_size = batch_size
         self.learning_rate = tf.Variable(float(learning_rate), trainable=False)
         self.learning_rate_decay_op = self.learning_rate.assign(
-            self.learning_rate * learning_rate_decay_factor)
+            self.learning_rate * learning_rate_decay)
         self.global_step = tf.Variable(0, trainable=False)
-        self.buckets = [(i, i) for i in buckets]  # to easier copy tf egs.
+        self.buckets = buckets = [(i, i) for i in buckets]  # to easier copy tf egs.
 
         # we need an output projection for sampled softmax
         output_projection = None
@@ -64,7 +65,7 @@ class SequenceAutoencoder(object):
                 b = tf.get_variable('proj_b', [self.vocab_size])
             output_projection = (w, b)
 
-            def sample_loss(inputs, labels):
+            def sampled_loss(inputs, labels):
                 with tf.device('/cpu:0'):
                     labels = tf.reshape(labels, [-1, 1])
                     return tf.nn.sampled_softmax_loss(w_t, b, inputs, labels,
@@ -123,7 +124,7 @@ class SequenceAutoencoder(object):
                 self.encoder_inputs, self.decoder_inputs, targets,
                 self.target_weights, buckets,
                 lambda x, y: seq2seq_f(x, y, False),
-                softmax_loss_function=softmax_loss_function)
+                softmax_loss_function=softmax_loss_func)
 
         # gradients
         params = tf.trainable_variables()
@@ -140,7 +141,8 @@ class SequenceAutoencoder(object):
                 self.updates.append(opt.apply_gradients(
                     zip(clipped_gradients, params), global_step=self.global_step))
 
-        self.saver = tf.train.Saver(tf.trainable_variables() + [self.global_step])
+        self.saver = tf.train.Saver(
+            tf.trainable_variables() + [self.global_step, self.learning_rate])
 
     def step(self, session, encoder_inputs, decoder_inputs, target_weights,
              bucket_id, forward_only):
@@ -228,13 +230,13 @@ class SequenceAutoencoder(object):
             # should test whether it is better to pad the front or back
             # but for now we pad the front to keep the sequence and outputs
             # close
-            encoder_pad = [special_ids['<PAD>']] * encoder_size - len(encoder_input)
+            encoder_pad = [special_ids['<PAD>']] * (encoder_size - len(encoder_input))
             encoder_inputs.append(encoder_pad + encoder_input)
 
             # decoder inputs -- put a <GO> and then pad the back
             decoder_pad_size = decoder_size - len(decoder_input) - 1
             decoder_inputs.append([special_ids['<GO>']] + decoder_input +
-                                  [special_ids['<PAD>']] * decoder_pad_size)
+                                  ([special_ids['<PAD>']] * decoder_pad_size))
 
         # now we reshape (although I feel like a better place to do this would
         # in the code that actually puts together the data)

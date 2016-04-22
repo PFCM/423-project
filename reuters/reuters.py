@@ -144,7 +144,7 @@ def get_special_ids():
     }
     
 
-def get_reuters(data_dir='data', level='word', min_reps=5):
+def get_reuters(data_dir='data', level='word', min_reps=2, most_common=10000):
     """Get the dataset as (training, test, vocab).
     first two are tuples containing a sequence, the labels and what part
     split they are in, vocab is
@@ -165,12 +165,17 @@ def get_reuters(data_dir='data', level='word', min_reps=5):
     logging.info('got %d records', len(all_data))
     ordered_words = vocab_freqs.most_common()
     to_remove = set()
-    for word, count in ordered_words[-1:0:-1]:
-        # loop backwards
-        if count > min_reps:
-            break  # must have them all
-        to_remove.add(word)
-        del vocab_freqs[word]
+    if min_reps > 1:
+        for word, count in ordered_words[-1:0:-1]:
+            # loop backwards
+            if count > min_reps:
+                break  # must have them all
+            to_remove.add(word)
+            del vocab_freqs[word]
+    if most_common is not None:
+        for word, count in ordered_words[most_common-1:]:
+            to_remove.add(word)
+            del vocab_freqs[word]
     logging.info('Removing %d words from vocab.', len(to_remove))
     for item in all_data:
         item[0] = ['<UNK>' if i in to_remove else i for i in item[0]]
