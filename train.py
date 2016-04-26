@@ -18,13 +18,13 @@ import model as sa
 import reuters
 
 flags = tf.app.flags
-flags.DEFINE_float("learning_rate", 0.5, "learning rate")
+flags.DEFINE_float("learning_rate", 0.0001, "learning rate")
 flags.DEFINE_float("learning_rate_decay", 0.99, "decay lr this much")
 flags.DEFINE_float("max_grad_norm", 10.0, "clip gradients to this")
 flags.DEFINE_integer("batch_size", 64, "batch size to use")
 flags.DEFINE_integer("size", 256, "size of each model layer")
 flags.DEFINE_integer("num_layers", 1, "number of model layers")
-flags.DEFINE_integer("vocab_size", 10002, "number of words to use")
+flags.DEFINE_integer("vocab_size", 10000, "number of words to use")
 flags.DEFINE_integer("steps_per_checkpoint", 200, "how often to save")
 flags.DEFINE_string("model_dir", "models", "where to save the models")
 flags.DEFINE_integer("max_steps", 100000, "how many times to run through the data")
@@ -32,7 +32,7 @@ flags.DEFINE_integer("max_steps", 100000, "how many times to run through the dat
 FLAGS = flags.FLAGS
 
 # these are the bucket sizes we are going to be using.
-_buckets = [10, 20, 40, 80, 160]
+_buckets = [10, 20, 40, 80, 160, 320]
 
 
 def bucket_data(data_seqs):
@@ -58,11 +58,11 @@ def bucket_data(data_seqs):
     return dataset
 
 
-def create_model(session, forward_only):
+def create_model(session, forward_only, vocab_size):
     """Set up the model, initialise or load params"""
     print('...getting model...', end='', flush=True)
     model = sa.SequenceAutoencoder(
-        FLAGS.vocab_size,
+        vocab_size,
         FLAGS.size,
         FLAGS.num_layers,
         FLAGS.batch_size,
@@ -94,7 +94,7 @@ def train():
 
     with tf.Session() as sess:
         # get model
-        model = create_model(sess, False)
+        model = create_model(sess, False, len(vocab))
         # bucket it up
         print('...bucketing data...', end='', flush=True)
         # for now, just a few for testing
@@ -102,7 +102,7 @@ def train():
         train_bucket_sizes = [len(bucketed_data[b]) for b in xrange(len(_buckets))]
         train_total_size = float(sum(train_bucket_sizes))
         print('\r~~~~Organised the data ({:.0f} records)'.format(train_total_size))
-        
+
         # I'm not quite sure how this works right now
         train_buckets_scale = [sum(train_bucket_sizes[:i + 1]) / train_total_size
                                for i in xrange(len(train_bucket_sizes))]
@@ -112,7 +112,6 @@ def train():
         previous_losses = []
         print('...step {:>9}'.format(0), end='', flush=True)
         for step in xrange(FLAGS.max_steps):
-            print('\r...step {:>9}(loss: {:.3f}'.format(step, loss), end='', flush=True)
             # choose a bucket
             random_num = np.random.random_sample()
             bucket_id = min([i for i in xrange(len(train_buckets_scale))
@@ -126,6 +125,10 @@ def train():
             step_time += (time.time() - start_time) / FLAGS.steps_per_checkpoint
             loss += step_loss / FLAGS.steps_per_checkpoint
             current_step += 1
+
+            print('\r...step {:>9}(loss: {:.3f}        '.format(
+                step, math.exp(loss)/current_step),
+                  end='', flush=True)
 
             # periodically save
             if current_step % FLAGS.steps_per_checkpoint == 0:
@@ -144,10 +147,11 @@ def train():
                 model.saver.save(sess, save_path, global_step=model.global_step)
                 step_time, loss = 0.0, 0.0
                 print('\\'*80)
+
 def main(_):
-    #logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.INFO)
     train()
-        
+
 
 if __name__ == '__main__':
     tf.app.run()

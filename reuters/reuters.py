@@ -57,7 +57,7 @@ def _get_vocab_filename(level):
         'vocab-{}.txt'.format(level))
 
 
-def _read_one_file(filename, vocab_freqs, token_func):
+def _read_one_file(filename, vocab_freqs, token_func, everything=True):
     """Reads one whole file and pulls out the data we need.
     Returns a list of lists looking like [text, label, set, id] where
     set is one of {train, test} according to `ModHayes` split.
@@ -74,7 +74,7 @@ def _read_one_file(filename, vocab_freqs, token_func):
         root = ET.fromstring(file_str)
         data = []
         for child in root:
-            if child.attrib['TOPICS'] == 'YES':
+            if child.attrib['TOPICS'] == 'YES' or everything:
                 try:
                     text = child.find('./TEXT/BODY').text
                 except AttributeError:
@@ -142,9 +142,9 @@ def get_special_ids():
         '<PUNCT>': 3,
         '<PAD>': 4
     }
-    
 
-def get_reuters(data_dir='data', level='word', min_reps=2, most_common=10000):
+
+def get_reuters(data_dir='data', level='word', min_reps=1, most_common=10000):
     """Get the dataset as (training, test, vocab).
     first two are tuples containing a sequence, the labels and what part
     split they are in, vocab is
@@ -173,7 +173,7 @@ def get_reuters(data_dir='data', level='word', min_reps=2, most_common=10000):
             to_remove.add(word)
             del vocab_freqs[word]
     if most_common is not None:
-        for word, count in ordered_words[most_common-1:]:
+        for word, count in ordered_words[most_common:]:
             to_remove.add(word)
             del vocab_freqs[word]
     logging.info('Removing %d words from vocab.', len(to_remove))
@@ -187,7 +187,7 @@ def get_reuters(data_dir='data', level='word', min_reps=2, most_common=10000):
             id_num += 1
     logging.info('..last id %d', id_num)
     logging.info('..vocab size %d', len(symbol_to_id))
-    
+
     for item in all_data:
         item[0] = [symbol_to_id[i] for i in item[0]]
     training = [item for item in all_data if item[2] == 'train']

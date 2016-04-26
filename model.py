@@ -15,7 +15,7 @@ import mrnn
 
 
 class SequenceAutoencoder(object):
-    """A sequence autoencoder. 
+    """A sequence autoencoder.
 
     For now this is will be quite simple, but we will see.
     """
@@ -73,7 +73,7 @@ class SequenceAutoencoder(object):
             softmax_loss_func = sampled_loss
 
         # make the RNN cell
-        cell = mrnn.VRNNCell(size, nonlinearity=tf.nn.relu, weightnorm=True)
+        cell = mrnn.IRNNCell(size, nonlinearity=tf.nn.relu, weightnorm='none')
         if dropout != 1.0:
             cell = tf.nn.rnn_cell.DropoutWrapper(cell, input_keep_prob=dropout)
         if num_layers > 1:
@@ -95,13 +95,16 @@ class SequenceAutoencoder(object):
         self.target_weights = []
         for i in xrange(buckets[-1][0]):  # biggest bucket
             # set up the placeholders
-            self.encoder_inputs.append(tf.placeholder(tf.int32, shape=[None],
-                                                      name='encoder{}'.format(i)))
+            self.encoder_inputs.append(
+                tf.placeholder(tf.int32, shape=[None],
+                               name='encoder{}'.format(i)))
         for i in xrange(buckets[-1][1] + 1):
-            self.decoder_inputs.append(tf.placeholder(tf.int32, shape=[None],
-                                                      name='decoder{}'.format(i)))
-            self.target_weights.append(tf.placeholder(tf.float32, shape=[None],
-                                                      name='weight{}'.format(i)))
+            self.decoder_inputs.append(
+                tf.placeholder(tf.int32, shape=[None],
+                               name='decoder{}'.format(i)))
+            self.target_weights.append(
+                tf.placeholder(tf.float32, shape=[None],
+                               name='weight{}'.format(i)))
 
         targets = [self.decoder_inputs[i + 1]
                    for i in xrange(len(self.decoder_inputs) - 1)]
@@ -261,4 +264,3 @@ class SequenceAutoencoder(object):
                     batch_weight[batch_idx] = 0.0
             batch_weights.append(batch_weight)
         return batch_encoder_inputs, batch_decoder_inputs, batch_weights
-                           
