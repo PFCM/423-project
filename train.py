@@ -18,13 +18,13 @@ import model as sa
 import reuters
 
 flags = tf.app.flags
-flags.DEFINE_float("learning_rate", 0.0001, "learning rate")
+flags.DEFINE_float("learning_rate", 0.5, "learning rate")
 flags.DEFINE_float("learning_rate_decay", 0.99, "decay lr this much")
-flags.DEFINE_float("max_grad_norm", 10.0, "clip gradients to this")
-flags.DEFINE_integer("batch_size", 64, "batch size to use")
+flags.DEFINE_float("max_grad_norm", 2.0, "clip gradients to this")
+flags.DEFINE_integer("batch_size", 128, "batch size to use")
 flags.DEFINE_integer("size", 256, "size of each model layer")
-flags.DEFINE_integer("num_layers", 1, "number of model layers")
-flags.DEFINE_integer("vocab_size", 10000, "number of words to use")
+flags.DEFINE_integer("num_layers", 2, "number of model layers")
+flags.DEFINE_integer("vocab_size", 20000, "number of words to use")
 flags.DEFINE_integer("steps_per_checkpoint", 200, "how often to save")
 flags.DEFINE_string("model_dir", "models", "where to save the models")
 flags.DEFINE_integer("max_steps", 100000, "how many times to run through the data")
@@ -126,8 +126,8 @@ def train():
             loss += step_loss / FLAGS.steps_per_checkpoint
             current_step += 1
 
-            print('\r...step {:>9}(loss: {:.3f}        '.format(
-                step, math.exp(loss)/current_step),
+            print('\r...step {:>9}(loss: {:.3f})        '.format(
+                step, loss/current_step),
                   end='', flush=True)
 
             # periodically save
