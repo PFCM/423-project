@@ -18,10 +18,10 @@ import model as sa
 import reuters
 
 flags = tf.app.flags
-flags.DEFINE_float("learning_rate", 0.5, "learning rate")
+flags.DEFINE_float("learning_rate", 0.1, "learning rate")
 flags.DEFINE_float("learning_rate_decay", 0.99, "decay lr this much")
 flags.DEFINE_float("max_grad_norm", 2.0, "clip gradients to this")
-flags.DEFINE_integer("batch_size", 128, "batch size to use")
+flags.DEFINE_integer("batch_size", 64, "batch size to use")
 flags.DEFINE_integer("size", 256, "size of each model layer")
 flags.DEFINE_integer("num_layers", 2, "number of model layers")
 flags.DEFINE_integer("vocab_size", 20000, "number of words to use")
@@ -125,6 +125,10 @@ def train():
             step_time += (time.time() - start_time) / FLAGS.steps_per_checkpoint
             loss += step_loss / FLAGS.steps_per_checkpoint
             current_step += 1
+
+            if np.isnan(loss):
+                print('Aborting -- loss is nan')
+                raise ValueError()
 
             print('\r...step {:>9}(loss: {:.3f})        '.format(
                 step, loss/current_step),
