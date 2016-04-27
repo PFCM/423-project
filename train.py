@@ -21,7 +21,7 @@ flags = tf.app.flags
 flags.DEFINE_float("learning_rate", 0.1, "learning rate")
 flags.DEFINE_float("learning_rate_decay", 0.99, "decay lr this much")
 flags.DEFINE_float("max_grad_norm", 2.0, "clip gradients to this")
-flags.DEFINE_integer("batch_size", 64, "batch size to use")
+flags.DEFINE_integer("batch_size", 32, "batch size to use")
 flags.DEFINE_integer("size", 256, "size of each model layer")
 flags.DEFINE_integer("num_layers", 2, "number of model layers")
 flags.DEFINE_integer("vocab_size", 20000, "number of words to use")
@@ -74,12 +74,12 @@ def create_model(session, forward_only, vocab_size):
     print('\r                 \r~~~~\n~~~~Got model.')
     ckpt = tf.train.get_checkpoint_state(FLAGS.model_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
-        print('...initialising from file...', end='')
+        print('...initialising from file...', end='', flush=True)
         # initialise everything not saved
         session.run(tf.initialize_all_variables())
         model.saver.restore(session, ckpt.model_checkpoint_path)
     else:
-        print('...initialising fresh...', end='')
+        print('...initialising fresh...', end='', flush=True)
         session.run(tf.initialize_all_variables())
     print('\r                             \r~~~~\n~~~~Initialised')
     return model
@@ -147,6 +147,7 @@ def train():
                 if len(previous_losses) > 2 and loss > max(previous_loss[-3:]):
                     sess.run(model.learning_rate_decay_op)
                     print('/dropped learning rate/')
+                previous_losses.append(loss)
                 save_path = os.path.join(FLAGS.model_dir, 'sequence_autoencoder.ckpt')
                 model.saver.save(sess, save_path, global_step=model.global_step)
                 step_time, loss = 0.0, 0.0
