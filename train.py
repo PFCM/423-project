@@ -18,13 +18,13 @@ import model as sa
 import reuters
 
 flags = tf.app.flags
-flags.DEFINE_float("learning_rate", 0.1, "learning rate")
-flags.DEFINE_float("learning_rate_decay", 0.99, "decay lr this much")
-flags.DEFINE_float("max_grad_norm", 2.0, "clip gradients to this")
+flags.DEFINE_float("learning_rate", 0.01, "learning rate")
+flags.DEFINE_float("learning_rate_decay", 0.9, "decay lr this much")
+flags.DEFINE_float("max_grad_norm", 100.0, "clip gradients to this")
 flags.DEFINE_integer("batch_size", 32, "batch size to use")
 flags.DEFINE_integer("size", 256, "size of each model layer")
 flags.DEFINE_integer("num_layers", 2, "number of model layers")
-flags.DEFINE_integer("vocab_size", 20000, "number of words to use")
+flags.DEFINE_integer("vocab_size", 10000, "number of words to use")
 flags.DEFINE_integer("steps_per_checkpoint", 200, "how often to save")
 flags.DEFINE_string("model_dir", "models", "where to save the models")
 flags.DEFINE_integer("max_steps", 100000, "how many times to run through the data")
@@ -32,7 +32,7 @@ flags.DEFINE_integer("max_steps", 100000, "how many times to run through the dat
 FLAGS = flags.FLAGS
 
 # these are the bucket sizes we are going to be using.
-_buckets = [10, 20, 40, 80, 160, 320]
+_buckets = [10,25,50,100,200]
 
 
 def bucket_data(data_seqs):
@@ -70,7 +70,8 @@ def create_model(session, forward_only, vocab_size):
         FLAGS.max_grad_norm,
         FLAGS.learning_rate,
         FLAGS.learning_rate_decay,
-        train=not forward_only)
+        train=not forward_only,
+        dropout=0.5 if not forward_only else 1.0)
     print('\r                 \r~~~~\n~~~~Got model.')
     ckpt = tf.train.get_checkpoint_state(FLAGS.model_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
@@ -144,7 +145,7 @@ def train():
                 print('\\\\\\\\\\\\\\\\step time: {:.1f}'.format(step_time))
                 print('///////perplexity: {:.5f}'.format(perplexity))
                 # decrease learning rate if necessary
-                if len(previous_losses) > 2 and loss > max(previous_loss[-3:]):
+                if len(previous_losses) > 2 and loss > max(previous_losses[-3:]):
                     sess.run(model.learning_rate_decay_op)
                     print('/dropped learning rate/')
                 previous_losses.append(loss)

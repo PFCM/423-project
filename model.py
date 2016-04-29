@@ -73,7 +73,7 @@ class SequenceAutoencoder(object):
             softmax_loss_func = sampled_loss
 
         # make the RNN cell
-        cell = mrnn.IRNNCell(size, nonlinearity=tf.nn.relu, weightnorm='none')
+        cell = mrnn.VRNNCell(size, nonlinearity=tf.nn.relu, weightnorm='recurrent')
         if dropout != 1.0:
             cell = tf.nn.rnn_cell.DropoutWrapper(cell, input_keep_prob=dropout)
         if num_layers > 1:
@@ -111,7 +111,7 @@ class SequenceAutoencoder(object):
 
         # training outputs, losses
         if not train:
-            self.outputs, self.losses = tf.nn.seq2se1.model_with_buckets(
+            self.outputs, self.losses = tf.nn.seq2seq.model_with_buckets(
                 self.encoder_inputs, self.decoder_inputs, targets,
                 self.target_weights, buckets, lambda x, y: seq2seq_f(x, y, True),
                 softmax_loss_function=softmax_loss_func)
@@ -126,7 +126,7 @@ class SequenceAutoencoder(object):
             self.outputs, self.losses = tf.nn.seq2seq.model_with_buckets(
                 self.encoder_inputs, self.decoder_inputs, targets,
                 self.target_weights, buckets,
-                lambda x, y: seq2seq_f(x, y, False),
+                lambda x, y: seq2seq_f(x, y, True),
                 softmax_loss_function=softmax_loss_func)
 
         # gradients
@@ -135,7 +135,7 @@ class SequenceAutoencoder(object):
             self.gradient_norms = []
             self.updates = []
             # nb -- room to move on this
-            opt = tf.train.GradientDescentOptimizer(self.learning_rate)
+            opt = tf.train.MomentumOptimizer(self.learning_rate, 0.9)
             for b in xrange(len(buckets)):
                 gradients = tf.gradients(self.losses[b], params)
                 clipped_gradients, norm = tf.clip_by_global_norm(gradients,
