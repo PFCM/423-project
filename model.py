@@ -85,6 +85,7 @@ class SequenceAutoencoder(object):
                 decoder_inputs,
                 cell,
                 self.vocab_size,
+                self.vocab_size,
                 size,
                 output_projection=output_projection,
                 feed_previous=do_decode)
