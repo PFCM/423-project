@@ -36,11 +36,11 @@ def load_model(vocab_size=5000, size=256, num_layers=2):
         train=False)
     print('\r~~Got model.    ', flush=True)
     return model, vocab, inv_vocab
-    
+
 
 def initialise(session, model, model_dir, model_file=""):
     """Initialise the model either from a directory
-    (in which case we use the latest checkpoint) or a 
+    (in which case we use the latest checkpoint) or a
     specific file."""
     if not model_file:
         ckpt = tf.train.get_checkpoint_state(model_dir)
@@ -74,7 +74,7 @@ def find_bucket(data):
 
 
 def pad(data, bucket_id):
-    """pads the data to fit the given bucket. 
+    """pads the data to fit the given bucket.
 
     Returns:
         (encoder_inputs, decoder_inputs, target_weights): everything
@@ -84,14 +84,14 @@ def pad(data, bucket_id):
     bucket_size = _buckets[bucket_id]
     encoder_pad = [special_ids['<PAD>']] * (bucket_size - len(data))
     encoder_input = encoder_pad + data
-    encoder_input = np.array(encoder_input, dtype=np.int32).reshape((-1,1))
+    encoder_input = np.array(encoder_input, dtype=np.int32).reshape((-1, 1))
     # only the first one matters here
     decoder_input = [special_ids['<GO>']] * bucket_size
-    decoder_input = np.array(decoder_input, dtype=np.int32).reshape((-1,1))
+    decoder_input = np.array(decoder_input, dtype=np.int32).reshape((-1, 1))
     # set up the weights, not a big deal though (just for the loss calculation)
     weights = np.ones(bucket_size, dtype=np.float32)
     weights[len(data):] = 0
-    weights = weights.reshape((-1,1))
+    weights = weights.reshape((-1, 1))
     return encoder_input, decoder_input, weights
 
 
@@ -106,7 +106,7 @@ def encode_decode(session, model, input_data):
     results = model.step(session, encoder_inputs, decoder_inputs, weights,
                          bucket, True)
     return results
-    
+
 
 def main(_):
     """Loads up the model (fails if it can't find an appropriate file)
@@ -116,7 +116,8 @@ def main(_):
                                          num_layers=FLAGS.num_layers)
     sess = tf.Session()
     with sess.as_default():
-        initialise(sess, model, model_dir=FLAGS.model_dir, model_file=FLAGS.model_file)
+        initialise(sess, model, model_dir=FLAGS.model_dir,
+                   model_file=FLAGS.model_file)
         try:
             while True:
                 sentence = input('>')
@@ -127,14 +128,12 @@ def main(_):
                 result = encode_decode(sess, model, sentence_ids)
                 print('~~~~~~')
                 print('~~Result: ')
-                #print(result)
-                #print([r[0].shape for r in result[2:len(sentence_ids)+2]])
                 print(' '.join(
                     [inv_vocab[int(np.argmax(r[0]))]
                      for r in result[2][:len(sentence_ids)]]))
                 print('~~~~(loss: {})'.format(result[1]))
                 print('~~~~~~')
-                
+
         except (KeyboardInterrupt, EOFError):
             print('\nbye')
 
