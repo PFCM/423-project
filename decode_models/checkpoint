@@ -1,0 +1,3 @@
+model_checkpoint_path: "sequence_autoencoder.ckpt-159800"
+all_model_checkpoint_paths: "sequence_autoencoder.ckpt-159600"
+all_model_checkpoint_paths: "sequence_autoencoder.ckpt-159800"

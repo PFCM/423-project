@@ -145,7 +145,8 @@ class SequenceAutoencoder(object):
                     zip(clipped_gradients, params), global_step=self.global_step))
 
         self.saver = tf.train.Saver(
-            tf.trainable_variables() + [self.global_step, self.learning_rate])
+            tf.trainable_variables() + [self.global_step, self.learning_rate],
+            max_to_keep=2)
 
     def step(self, session, encoder_inputs, decoder_inputs, target_weights,
              bucket_id, forward_only):
