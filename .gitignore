@@ -2,5 +2,5 @@ __pycache__
 .DS_Store
 .python-version
 data
-*.gz
+*.tar.gz
 vocab*
