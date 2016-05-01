@@ -24,7 +24,7 @@ flags.DEFINE_float("max_grad_norm", 100.0, "clip gradients to this")
 flags.DEFINE_integer("batch_size", 32, "batch size to use")
 flags.DEFINE_integer("size", 256, "size of each model layer")
 flags.DEFINE_integer("num_layers", 2, "number of model layers")
-flags.DEFINE_integer("vocab_size", 10000, "number of words to use")
+flags.DEFINE_integer("vocab_size", 20000, "number of words to use")
 flags.DEFINE_integer("steps_per_checkpoint", 200, "how often to save")
 flags.DEFINE_string("model_dir", "models", "where to save the models")
 flags.DEFINE_integer("max_steps", 100000, "how many times to run through the data")
@@ -71,7 +71,8 @@ def create_model(session, forward_only, vocab_size):
         FLAGS.learning_rate,
         FLAGS.learning_rate_decay,
         train=not forward_only,
-        dropout=0.5 if not forward_only else 1.0)
+        dropout=0.5 if not forward_only else 1.0,
+        num_samples=2048)
     print('\r                 \r~~~~\n~~~~Got model.')
     ckpt = tf.train.get_checkpoint_state(FLAGS.model_dir)
     if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):

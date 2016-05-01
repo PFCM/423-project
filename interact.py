@@ -108,6 +108,15 @@ def encode_decode(session, model, input_data):
     return results
 
 
+def safe_sample(pvals):
+    """Gets a sample, defaulting to argmax when numerical issues arise.
+    """
+    try:
+        return np.argmax(np.random.multinomial(1, pvals))
+    except:
+        return np.argmax(pvals)
+
+
 def main(_):
     """Loads up the model (fails if it can't find an appropriate file)
     and drops into a loop taking input and pusing it through the model."""
@@ -129,7 +138,7 @@ def main(_):
                 print('~~~~~~')
                 print('~~Result: ')
                 print(' '.join(
-                    [inv_vocab[int(np.argmax(r[0]))]
+                    [inv_vocab[int(safe_sample(r[0]))]
                      for r in result[2][:len(sentence_ids)]]))
                 print('~~~~(loss: {})'.format(result[1]))
                 print('~~~~~~')
