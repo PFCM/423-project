@@ -80,7 +80,7 @@ class SequenceAutoencoder(object):
             cell = tf.nn.rnn_cell.MultiRNNCell([cell] * num_layers)
 
         def seq2seq_f(encoder_inputs, decoder_inputs, do_decode):
-            return tf.nn.seq2seq.embedding_tied_rnn_seq2seq(
+            return tf.nn.seq2seq.embedding_rnn_seq2seq(
                 encoder_inputs,
                 decoder_inputs,
                 cell,
