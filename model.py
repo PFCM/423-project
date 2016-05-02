@@ -94,7 +94,9 @@ class SequenceEncoder(object):
         """
         # figure out the best bucket
         seq_length = max((len(seq) for seq in data))
+        assert seq_length <= self.buckets[-1][0]
         bucket_id = -1
+        encoder_length = self.buckets[-1][0]
         for i, (b_len, _) in enumerate(self.buckets):
             if seq_length < b_len:
                 bucket_id = i
@@ -237,7 +239,9 @@ class SequenceAutoencoder(object):
             self.gradient_norms = []
             self.updates = []
             # nb -- room to move on this
-            opt = tf.train.MomentumOptimizer(self.learning_rate, 0.9)
+            #opt = tf.train.MomentumOptimizer(self.learning_rate, 0.9)
+            opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.8,
+                                         beta2=0.99)
             for b in xrange(len(buckets)):
                 gradients = tf.gradients(self.losses[b], params)
                 clipped_gradients, norm = tf.clip_by_global_norm(gradients,

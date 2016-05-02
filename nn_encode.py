@@ -14,7 +14,8 @@ import reuters
 import model as sa
 
 flags = tf.app.flags
-flags.DEFINE_string('model_dir', 'models', 'where the models live')
+flags.DEFINE_string('model_dir', 'bigvocab_untied_models',
+                    'where the models live')
 flags.DEFINE_string('model_file', '', 'a specific file you would prefer.')
 flags.DEFINE_integer('vocab_size', 20000, 'size of vocab')
 FLAGS = flags.FLAGS
@@ -59,13 +60,14 @@ def tokenise(sentence, vocab):
 
 def get_vector(words, vocab_size=20000, model_dir='bigvocab_untied_models'):
     """Goes end to end from a string to the vector representation"""
-    global _model
+    global _model  # I'm so sorry
     global _sess
     global _vocab
     if not _model:
         print('~~getting model')
-        _, _, _vocab = reuters.get_reuters(
-            most_common=vocab_size)
+        if not _vocab:
+            _, _, _vocab = reuters.get_reuters(
+                most_common=vocab_size)
         _model = load_encoder(_vocab, [10, 25, 50, 100, 200])
         _sess = tf.InteractiveSession()
         initialise(_sess, model_dir)
@@ -77,12 +79,41 @@ def get_vector(words, vocab_size=20000, model_dir='bigvocab_untied_models'):
 
 
 def main(_):
-    x, y, vocab = reuters.get_reuters(most_common=FLAGS.vocab_size)
-    _model = load_encoder(vocab, [10, 25, 50, 100, 200])
+    global _vocab
+    global _model
+
+    print('~~loading data', end='', flush=True)
+    x, y, _vocab = reuters.get_reuters(most_common=FLAGS.vocab_size)
+    data = x+y  # just do it all
+    data = [item[0] for item in data if len(item[0]) <= 200]
+    print('\r~~done. ({} documents)'.format(len(data)))
+    print('~~loading model', end='', flush=True)
+    _model = load_encoder(_vocab, [10, 25, 50, 100, 200])
+    print('\r~~done.        ')
     sess = tf.Session()
     with sess.as_default():
         initialise(sess, FLAGS.model_dir, FLAGS.model_file)
-        print('this is where we would load the data etc')
+        vecs = []
+        # This is kinda dumb (ie. slow)
+        # should do more than one at a time
+        # the reason we aren't is because I
+        # can't be bothered making sure they
+        # stay in the same order and I want
+        # to make sure they all get pushed
+        # through the appropriate bucket
+        # because that was how the model
+        # was trained.
+        print('~~getting vectors')
+        for i, seq in enumerate(data):
+            padded_seq, bucket = _model.pad_and_bucket([seq], _vocab)
+            vecs.append(_model.embed_batch(sess, padded_seq, bucket))
+            if i % 10 == 0:
+                print('\r~~  ({})'.format(i), end='', flush=True)
+        print()
+        print('~~writing to file (as giant numpy array)')
+        print('lol gotcha I\'ve done nothing')
+        print('bye')
+
 
 if __name__ == '__main__':
     tf.app.run()
