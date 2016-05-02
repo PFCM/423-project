@@ -14,6 +14,108 @@ import tensorflow as tf
 import mrnn
 
 
+class SequenceEncoder(object):
+    """Like the sequence autoencoder, but attempts to only do the encoding
+    part. The goal is to be able to load models learned by SequenceAutoencoder
+    so we can just use the encoding part by itself. Does not set up for any
+    training or anything like that.
+    """
+
+    def __init__(self, vocab_size, size, num_layers, buckets, batch_size=1):
+        self.vocab_size = vocab_size
+        self.num_layers = num_layers
+        self.size = size
+        self.buckets = [(a, a) for a in buckets]
+        self.batch_size = batch_size
+
+        # first we get the output projection
+        # we have to be super careful to match the variable names so
+        # we can load them from the files.
+        with tf.device('/cpu:0'):
+            w = tf.get_variable('proj_w', [size, self.vocab_size])
+            b = tf.get_variable('proj_b', [self.vocab_size])
+        output_projection = (w, b)
+
+        cell = mrnn.VRNNCell(size, nonlinearity=tf.nn.relu,
+                             weightnorm='recurrent')
+        # no dropout
+        if num_layers > 1:
+            cell = tf.nn.rnn_cell.MultiRNNCell([cell] * num_layers)
+        cell = tf.nn.rnn_cell.EmbeddingWrapper(
+            cell, embedding_classes=vocab_size,
+            embedding_size=size)
+        self.encoder_inputs = []
+        for i in xrange(self.buckets[-1][0]):
+            self.encoder_inputs.append(
+                tf.placeholder(tf.int32, shape=[None],
+                               name='encoder{}'.format(i)))
+        # note the name of the scope, has to match with the model we
+        # are going to load in
+        # nb, this is an attempt to build it the same way as
+        # in tf.nn.seq2seq.embedding_rnn_seq2seq
+        self.outputs = []  # outputs by bucket
+        self.final_states = []  # states by bucket
+        do_reuse = False
+        for bucket_length, _ in self.buckets:
+            with tf.variable_scope('embedding_rnn_seq2seq',
+                                   reuse=do_reuse):
+                do_reuse = True
+                bucket_out, bucket_state = tf.nn.rnn(
+                    cell, self.encoder_inputs[:bucket_length],
+                    dtype=tf.float32)
+                self.outputs.append(bucket_out)
+                self.final_states.append(bucket_state)
+
+    def embed_batch(self, session, data, bucket_id):
+        """Embeds a batch of sequences.
+
+        Args:
+            session: the tensorflow session
+            data: a batch of padded data.
+            bucket_id: which of this model's buckets the data has been padded
+                to fit.
+
+        Returns:
+            a numpy array of size `[batch_size, size*layers]`
+        """
+        states = session.run(
+            self.final_states[bucket_id],
+            {self.encoder_inputs[i]: input_ for i, input_ in enumerate(data)})
+        return states
+
+    def pad_and_bucket(self, data, special_ids):
+        """pads the data to the size of the best bucket.
+
+        Args:
+            data: list of sequences of token ids in batch-major order.
+
+        Returns:
+            data, bucket_id: ready for feeding into embed_batch
+        """
+        # figure out the best bucket
+        seq_length = max((len(seq) for seq in data))
+        assert seq_length <= self.buckets[-1][0]
+        bucket_id = -1
+        encoder_length = self.buckets[-1][0]
+        for i, (b_len, _) in enumerate(self.buckets):
+            if seq_length < b_len:
+                bucket_id = i
+                encoder_length = b_len
+                break
+        sequences = []
+        for seq in data:
+            pad = [special_ids['<PAD>']] * (encoder_length - len(seq))
+            sequences.append(pad + seq)  # we padded the front during training
+        # now we need to flip them around
+        batch_inputs = []
+        for seq_idx in xrange(encoder_length):
+            batch_inputs.append(
+                np.array([sequences[batch_idx][seq_idx]
+                          for batch_idx in xrange(len(data))],
+                         dtype=np.int32))
+        return batch_inputs, bucket_id
+
+
 class SequenceAutoencoder(object):
     """A sequence autoencoder.
 
@@ -73,7 +175,8 @@ class SequenceAutoencoder(object):
             softmax_loss_func = sampled_loss
 
         # make the RNN cell
-        cell = mrnn.VRNNCell(size, nonlinearity=tf.nn.relu, weightnorm='recurrent')
+        cell = mrnn.VRNNCell(size, nonlinearity=tf.nn.relu,
+                             weightnorm='recurrent')
         if dropout != 1.0:
             cell = tf.nn.rnn_cell.DropoutWrapper(cell, input_keep_prob=dropout)
         if num_layers > 1:
@@ -136,7 +239,9 @@ class SequenceAutoencoder(object):
             self.gradient_norms = []
             self.updates = []
             # nb -- room to move on this
-            opt = tf.train.MomentumOptimizer(self.learning_rate, 0.9)
+            #opt = tf.train.MomentumOptimizer(self.learning_rate, 0.9)
+            opt = tf.train.AdamOptimizer(self.learning_rate, beta1=0.8,
+                                         beta2=0.99)
             for b in xrange(len(buckets)):
                 gradients = tf.gradients(self.losses[b], params)
                 clipped_gradients, norm = tf.clip_by_global_norm(gradients,
