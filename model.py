@@ -45,7 +45,7 @@ class SequenceEncoder(object):
             cell, embedding_classes=vocab_size,
             embedding_size=size)
         self.encoder_inputs = []
-        for i in xrange(buckets[-1][0]):
+        for i in xrange(self.buckets[-1][0]):
             self.encoder_inputs.append(
                 tf.placeholder(tf.int32, shape=[None],
                                name='encoder{}'.format(i)))
@@ -55,15 +55,18 @@ class SequenceEncoder(object):
         # in tf.nn.seq2seq.embedding_rnn_seq2seq
         self.outputs = []  # outputs by bucket
         self.final_states = []  # states by bucket
+        do_reuse = False
         for bucket_length, _ in self.buckets:
             with tf.variable_scope('embedding_rnn_seq2seq',
-                                   reuse=True if j > 0 else None):
-                bucket_out, bucket_state = tf.nn.rnn.rnn(
-                    cell, self.encoder_inputs[:bucket_length])
+                                   reuse=do_reuse):
+                do_reuse = True
+                bucket_out, bucket_state = tf.nn.rnn(
+                    cell, self.encoder_inputs[:bucket_length],
+                    dtype=tf.float32)
                 self.outputs.append(bucket_out)
-                self.final_states.apend(bucket_state)
+                self.final_states.append(bucket_state)
 
-    def embed_batch(session, data, bucket_id):
+    def embed_batch(self, session, data, bucket_id):
         """Embeds a batch of sequences.
 
         Args:
@@ -80,7 +83,7 @@ class SequenceEncoder(object):
             {self.encoder_inputs[i]: input_ for i, input_ in enumerate(data)})
         return states
 
-    def pad_and_bucket(data, special_ids):
+    def pad_and_bucket(self, data, special_ids):
         """pads the data to the size of the best bucket.
 
         Args:
@@ -94,12 +97,12 @@ class SequenceEncoder(object):
         bucket_id = -1
         for i, (b_len, _) in enumerate(self.buckets):
             if seq_length < b_len:
-                bucket_id = b_len
+                bucket_id = i
                 encoder_length = b_len
                 break
         sequences = []
         for seq in data:
-            pad = [special_ids['<PAD>']] * encoder_length
+            pad = [special_ids['<PAD>']] * (encoder_length - len(seq))
             sequences.append(pad + seq)  # we padded the front during training
         # now we need to flip them around
         batch_inputs = []

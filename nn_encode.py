@@ -12,12 +12,16 @@ import tensorflow as tf
 
 import reuters
 import model as sa
-import interact
 
 flags = tf.app.flags
 flags.DEFINE_string('model_dir', 'models', 'where the models live')
 flags.DEFINE_string('model_file', '', 'a specific file you would prefer.')
+flags.DEFINE_integer('vocab_size', 20000, 'size of vocab')
 FLAGS = flags.FLAGS
+
+_model = None
+_sess = None
+_vocab = None
 
 
 def load_encoder(vocab, buckets, size=256, num_layers=2):
@@ -33,17 +37,48 @@ def initialise(session, model_dir, model_file=''):
     saver = tf.train.Saver()  # hopefully everything is in here
     if not model_file:
         ckpt = tf.train.get_checkpoint_state(model_dir)
-        if ckpt and tf.gfile.Exists(ckp.model_checkpoint_path):
+        if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
             model_file = ckpt.model_checkpoint_path
         else:
             raise ValueError('No model file and could not find.')
-    print('~~initialising form {}'.format(model_file), end='', flush=True)
+    print('~~initialising from {}'.format(model_file), end='', flush=True)
     saver.restore(session, model_file)
     print('\r~~initialised~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
 
 
+def tokenise(sentence, vocab):
+    """Splits up the sentence into words, removes unknowns etc.
+    Returns both the rearranged sentence and the sentence as a list
+    of int ids"""
+    split_sentence = reuters.word_split(sentence)
+    split_sentence = [word if word in vocab else '<UNK>'
+                      for word in split_sentence]
+    sentence_ids = [int(vocab[word]) for word in split_sentence]
+    return ' '.join(split_sentence), sentence_ids
+
+
+def get_vector(words, vocab_size=20000, model_dir='bigvocab_untied_models'):
+    """Goes end to end from a string to the vector representation"""
+    global _model
+    global _sess
+    global _vocab
+    if not _model:
+        print('~~getting model')
+        _, _, _vocab = reuters.get_reuters(
+            most_common=vocab_size)
+        _model = load_encoder(_vocab, [10, 25, 50, 100, 200])
+        _sess = tf.InteractiveSession()
+        initialise(_sess, model_dir)
+        print('~~done')
+    new_words, word_ids = tokenise(words, _vocab)
+    word_ids, bucket = _model.pad_and_bucket(
+        [word_ids], reuters.get_special_ids())
+    return _model.embed_batch(_sess, word_ids, bucket).flatten()
+
+
 def main(_):
-    model = load_encoder(FLAGS.model_dir, FLAGS.model_file)
+    x, y, vocab = reuters.get_reuters(most_common=FLAGS.vocab_size)
+    _model = load_encoder(vocab, [10, 25, 50, 100, 200])
     sess = tf.Session()
     with sess.as_default():
         initialise(sess, FLAGS.model_dir, FLAGS.model_file)
