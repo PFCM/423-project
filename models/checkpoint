@@ -1,6 +1,3 @@
-model_checkpoint_path: "sequence_autoencoder.ckpt-120200"
-all_model_checkpoint_paths: "sequence_autoencoder.ckpt-119400"
-all_model_checkpoint_paths: "sequence_autoencoder.ckpt-119600"
-all_model_checkpoint_paths: "sequence_autoencoder.ckpt-119800"
-all_model_checkpoint_paths: "sequence_autoencoder.ckpt-120000"
-all_model_checkpoint_paths: "sequence_autoencoder.ckpt-120200"
+version https://git-lfs.github.com/spec/v1
+oid sha256:bac91bec43df89fff2e2a826e0d8ab9062e8d86678310c0d9549d077b78d404b
+size 373

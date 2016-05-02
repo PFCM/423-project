@@ -1,0 +1,14 @@
+models/checkpoint filter=lfs diff=lfs merge=lfs -text
+models/sequence_autoencoder.ckpt-120200 filter=lfs diff=lfs merge=lfs -text
+models/sequence_autoencoder.ckpt-120200.meta filter=lfs diff=lfs merge=lfs -text
+bigvocab_untied_models/checkpoint filter=lfs diff=lfs merge=lfs -text
+bigvocab_untied_models/sequence_autoencoder.ckpt-13000 filter=lfs diff=lfs merge=lfs -text
+bigvocab_untied_models/sequence_autoencoder.ckpt-13000.meta filter=lfs diff=lfs merge=lfs -text
+bigvocab_untied_models/sequence_autoencoder.ckpt-13200 filter=lfs diff=lfs merge=lfs -text
+bigvocab_untied_models/sequence_autoencoder.ckpt-13200.meta filter=lfs diff=lfs merge=lfs -text
+decode_models/checkpoint.gz filter=lfs diff=lfs merge=lfs -text
+decode_models/info.gz filter=lfs diff=lfs merge=lfs -text
+decode_models/sequence_autoencoder.ckpt-159600.gz filter=lfs diff=lfs merge=lfs -text
+decode_models/sequence_autoencoder.ckpt-159600.meta.gz filter=lfs diff=lfs merge=lfs -text
+decode_models/sequence_autoencoder.ckpt-159800.gz filter=lfs diff=lfs merge=lfs -text
+decode_models/sequence_autoencoder.ckpt-159800.meta.gz filter=lfs diff=lfs merge=lfs -text
