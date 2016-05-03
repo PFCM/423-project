@@ -25,3 +25,5 @@ decode_models/info filter=lfs diff=lfs merge=lfs -text
 decode_models/sequence_autoencoder.ckpt-159800 filter=lfs diff=lfs merge=lfs -text
 decode_models/sequence_autoencoder.ckpt-159800.meta filter=lfs diff=lfs merge=lfs -text
 >>>>>>> 8ed32357b46455b1f9a5181c35a7e85b17d41fd6
+nn_features-test.np.gz filter=lfs diff=lfs merge=lfs -text
+nn_features-train.np.gz filter=lfs diff=lfs merge=lfs -text
