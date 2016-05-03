@@ -81,8 +81,9 @@ def _read_one_file(filename, vocab_freqs, token_func, everything=True):
                     # some don't have body tags
                     text = child.find('./TEXT').text
                 text = token_func(text)
-                for symbol in text:
-                    vocab_freqs[symbol] += 1
+                if vocab_freqs:
+                    for symbol in text:
+                        vocab_freqs[symbol] += 1
                 topics = [bytes(d.text, 'utf-8')
                           for d in child.findall('./TOPICS/D')]
                 if child.attrib['CGISPLIT'] == 'TRAINING-SET':
@@ -144,6 +145,34 @@ def get_special_ids():
     }
 
 
+def get_text_and_labels(data_dir='data', ids=None):
+    """Gets the dataset just as raw text and labels.
+    
+    Args:
+       data_dir: where the data should be. If it is not there it will be
+            downloaded.
+       ids: optional list of ids. If present only the matching records are
+           returned.
+    """
+    if not os.path.exists(data_dir):
+        with tarfile.open(_maybe_download(), 'r:gz') as datafile:
+            datafile.extractall(path=data_dir)
+    filenames = [os.path.join(data_dir, f)
+                 for f in os.listdir(data_dir) if re.search('sgm$', f)]
+    data = []
+    for filename in filenames:
+        data.extend(_read_one_file(filename, None, word_split))
+    if ids:
+        text = [' '.join(item[0]) for item in data if item[-1] in ids]
+        labels = [item[1] for item in data if item[-1] in ids]
+    else:
+        text = [' '.join(item[0]) for item in data]
+        labels = [item[1] for item in data]
+
+    return text, labels
+    
+
+
 def get_reuters(data_dir='data', level='word', min_reps=1, most_common=10000):
     """Get the dataset as (training, test, vocab).
     first two are tuples containing a sequence, the labels and what part
@@ -156,7 +185,7 @@ def get_reuters(data_dir='data', level='word', min_reps=1, most_common=10000):
             datafile.extractall(path=data_dir)
     # we are just going to hold the data in memory
     filenames = [os.path.join(data_dir, f)
-                 for f in os.listdir(data_dir) if re.search('.sgm', f)]
+                 for f in os.listdir(data_dir) if re.search('sgm$', f)]
     all_data = []
     vocab_freqs = collections.Counter()
     split_func = word_split if level == 'word' else char_split

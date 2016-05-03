@@ -44,7 +44,10 @@ def tf_idf(documents, vocab=None, counts=None, sequence_ids=True):
             idf[vocab[symbol]] = total_symbols / counts[symbol]
         else:
             idf[symbol] = total_symbols / counts[symbol]
+    zeros = idf == 0
+    idf[zeros] = 1e-10
     idf = np.log(idf)
+    idf[zeros] = 0
     # now we have document frequencies we need term frequencies per doc
     # this is going to be fairly large
     tfs = [_term_freqs(doc, None, vocab_size) for doc in documents]
@@ -79,16 +82,28 @@ def get_tf_idf():
     return training, test, vocab
 
 
+def write_labels(labels, filename):
+    """Write the labels to a file"""
+    with open(filename, 'w') as f:
+        for label in labels:
+            f.write(labels)
+
+
 def main():
     """If run as a script, looks for data and if not found, generates it."""
     import reuters
-    training, test, vocab = reuters.get_reuters()
-    train_vectors = tf_idf([item[0] for item in training], vocab)
-    test_vectors = tf_idf([item[0] for item in test], vocab)
+    training, test, vocab = reuters.get_reuters(most_common=20000)
+    #train_vectors = tf_idf([item[0] for item in training], vocab)
+    #test_vectors = tf_idf([item[0] for item in test], vocab)
     # we should write the category labels as well somehow??
     # write the data :)
-    np.savetxt('train_tf-idf.txt.gz', train_vectors)
-    np.savetxt('test_tf-idf.txt.gz', test_vectors)
+    #np.savetxt('train_tf-idf.txt.gz', train_vectors)
+    #np.savetxt('test_tf-idf.txt.gz', test_vectors)
+    train_labels = [item[1] for item in training]
+    test_labels = [item[1] for item in training]
+    write_labels(train_labels, 'train_labels.txt')
+    write_labels(test_labels, 'test_labels.txt')
+    
 
     # log an example to make sure it makes sense
     inv_vocab = {b: a for a, b in vocab.items()}
