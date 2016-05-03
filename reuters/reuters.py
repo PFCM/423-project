@@ -81,7 +81,7 @@ def _read_one_file(filename, vocab_freqs, token_func, everything=True):
                     # some don't have body tags
                     text = child.find('./TEXT').text
                 text = token_func(text)
-                if vocab_freqs:
+                if vocab_freqs is not None:
                     for symbol in text:
                         vocab_freqs[symbol] += 1
                 topics = [bytes(d.text, 'utf-8')
@@ -143,6 +143,7 @@ def get_special_ids():
         '<PUNCT>': 3,
         '<PAD>': 4
     }
+
 
 
 def get_text_and_labels(data_dir='data', ids=None):

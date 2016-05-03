@@ -112,14 +112,15 @@ def safe_sample(pvals):
     """Gets a sample, defaulting to argmax when numerical issues arise.
     """
     try:
-        return np.argmax(np.random.multinomial(1, pvals))
+        exppvals = np.exp(pvals)
+        return np.argmax(np.random.multinomial(1, exppvals/exppvals.sum()))
     except:
         return np.argmax(pvals)
 
 
 def main(_):
     """Loads up the model (fails if it can't find an appropriate file)
-    and drops into a loop taking input and pusing it through the model."""
+    and drops into a loop taking input and pushing it through the model."""
     model, vocab, inv_vocab = load_model(vocab_size=FLAGS.vocab_size,
                                          size=FLAGS.size,
                                          num_layers=FLAGS.num_layers)
