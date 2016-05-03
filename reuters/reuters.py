@@ -145,15 +145,15 @@ def get_special_ids():
     }
 
 
-
-def get_text_and_labels(data_dir='data', ids=None):
+def get_text_and_labels(data_dir='data', ids=None, split='both'):
     """Gets the dataset just as raw text and labels.
-    
+
     Args:
        data_dir: where the data should be. If it is not there it will be
             downloaded.
        ids: optional list of ids. If present only the matching records are
            returned.
+       set: optional string, one of `train`, `test` or `both`.
     """
     if not os.path.exists(data_dir):
         with tarfile.open(_maybe_download(), 'r:gz') as datafile:
@@ -163,6 +163,9 @@ def get_text_and_labels(data_dir='data', ids=None):
     data = []
     for filename in filenames:
         data.extend(_read_one_file(filename, None, word_split))
+    # check the split while we still can
+    if split != 'both':
+        data = [item for item in data if item[2] == split]
     if ids:
         text = [' '.join(item[0]) for item in data if item[-1] in ids]
         labels = [item[1] for item in data if item[-1] in ids]
@@ -170,8 +173,9 @@ def get_text_and_labels(data_dir='data', ids=None):
         text = [' '.join(item[0]) for item in data]
         labels = [item[1] for item in data]
 
-    return text, labels
-    
+    return text, [[label.decode()
+                   for label in labelling]
+                  for labelling in labels]
 
 
 def get_reuters(data_dir='data', level='word', min_reps=1, most_common=10000):

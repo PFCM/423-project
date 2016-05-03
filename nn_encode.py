@@ -41,7 +41,8 @@ def initialise(session, model_dir, model_file=''):
         if ckpt and tf.gfile.Exists(ckpt.model_checkpoint_path):
             model_file = ckpt.model_checkpoint_path
         else:
-            raise ValueError('No model file and could not find.')
+            raise ValueError(
+                'No model file and could not find {}.'.format(model_dir))
     print('~~initialising from {}'.format(model_file), end='', flush=True)
     saver.restore(session, model_file)
     print('\r~~initialised~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
