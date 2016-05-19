@@ -66,13 +66,13 @@ def get_clustering(data, num_clusters):
     return clusterer
 
 
-def get_tf_idf(train, test, max_features):
+def get_tf_idf(train, test, max_features, stop_words=None):
     """Transforms data to tf-idf"""
     print('~~Transforming to tf-idf')
     vectorizer = TfidfVectorizer(max_df=0.5,
                                  max_features=max_features,
                                  min_df=2,
-                                 stop_words='english')
+                                 stop_words=stop_words)
     start = time.time()
     X = vectorizer.fit_transform(train)
     tX = vectorizer.transform(test)
@@ -140,6 +140,20 @@ def solo_evaluate(clusterer, X, labels, tX, tlabels):
     accumulator = 0
     cluster_labels = [[label for label, count in counter.most_common(5)]
                       for counter in label_counts]
+
+    # also get the `purity`
+    purities = {}
+    for cluster_num, count in counts_per_cluster.most_common():
+        if len(cluster_labels[cluster_num]):
+            cluster_label = cluster_labels[cluster_num][0]
+            purities[cluster_num] = \
+                (label_counts[cluster_num][cluster_label]/count)
+            print(
+                '{}: {} -- {}, {}'.format(
+                    cluster_num, cluster_label,
+                    label_counts[cluster_num][cluster_label], count))
+        else:
+            purities[cluster_num] = (0)
     for i, guess in enumerate(guesses):
         # how many of the labels did it get correct?
         ground_truth = tlabels[i]
@@ -150,7 +164,10 @@ def solo_evaluate(clusterer, X, labels, tX, tlabels):
         hits = len([label
                     for label in ground_truth
                     if label in cluster_labels[guess]])
-        accumulator += hits / len(ground_truth)
+        accumulator += hits / min(5, len(ground_truth))
+    # we define `pseudo-purity` as the purity using just the most common
+    # label, ignoring the fact that most have multiple labels
+    print('~~pseudo-purity: {}'.format(sum(purities.values()) / len(purities)))
     print('~~Accuracy on new data:')
     print('~~~~average chance of correct labels (top 5): {}'.format(
         accumulator / len(tlabels)))
@@ -200,12 +217,19 @@ def main():
     else:
         nnX, nntX = get_nn_features(data, tdata, args.nn_vecfile)
         tfX, tftX = get_tf_idf(data, tdata, args.num_features)
+        stfX, stftX = get_tf_idf(data, tdata, args.num_features // 10,
+                                 stop_words='english')
         print('~~Clustering NN')
         start = time.time()
         nn_clusterer = get_clustering(nnX, args.num_clusters or num_labels)
         print('~~~~(done in {}s)'.format(time.time() - start))
+        print('~~Clustering big tf-idf')
         start = time.time()
         tf_clusterer = get_clustering(tfX, args.num_clusters or num_labels)
+        print('~~~~(done in {}s)'.format(time.time() - start))
+        print('~~Clustering small tf-idf')
+        start = time.time()
+        stf_clusterer = get_clustering(stfX, args.num_clusters or num_labels)
         print('~~~~(done in {}s)'.format(time.time() - start))
         print('/////////////////////////////////////////////')
         print('\\\\\\\\\\\\Evaluation of NN clusters alone:')
@@ -214,8 +238,16 @@ def main():
         print('\\\\\\\\\\\\Evaluation of tf-idf clusters alone:')
         solo_evaluate(tf_clusterer, tfX, labels, tftX, tlabels)
         print('//////////////////////////////////////////////')
-        print('\\\\\\\\\\\\\\\\\\\\\\Both')
+        print('\\\\\\\\\\\\Evaluation of small tf-idf clusters alone:')
+        solo_evaluate(stf_clusterer, stfX, labels, stftX, tlabels)
+        print('//////////////////////////////////////////////')
+        print('\\\\\\\\\\\\\\\\\\\\\\pairs')
+        print('~NN x big tf')
         compare_clusters(nn_clusterer, tf_clusterer)
+        print('~NN x small tf')
+        compare_clusters(nn_clusterer, stf_clusterer)
+        print('~big x small')
+        compare_clusters(tf_clusterer, stf_clusterer)
 
 
 if __name__ == '__main__':

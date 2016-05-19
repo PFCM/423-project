@@ -36,8 +36,9 @@ class SequenceEncoder(object):
             b = tf.get_variable('proj_b', [self.vocab_size])
         output_projection = (w, b)
 
-        cell = mrnn.VRNNCell(size, nonlinearity=tf.nn.relu,
-                             weightnorm='recurrent')
+        #cell = mrnn.VRNNCell(size, nonlinearity=tf.nn.relu,
+        #                     weightnorm='recurrent')
+        cell = tf.nn.rnn_cell.LSTMCell(size)
         # no dropout
         if num_layers > 1:
             cell = tf.nn.rnn_cell.MultiRNNCell([cell] * num_layers)
@@ -175,8 +176,9 @@ class SequenceAutoencoder(object):
             softmax_loss_func = sampled_loss
 
         # make the RNN cell
-        cell = mrnn.VRNNCell(size, nonlinearity=tf.nn.relu,
-                             weightnorm='recurrent')
+        #cell = mrnn.VRNNCell(size, nonlinearity=tf.nn.relu,
+        #                     weightnorm='recurrent')
+        cell = tf.nn.rnn_cell.LSTMCell(size)
         if dropout != 1.0:
             cell = tf.nn.rnn_cell.DropoutWrapper(cell, input_keep_prob=dropout)
         if num_layers > 1:
