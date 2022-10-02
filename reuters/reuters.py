@@ -157,7 +157,26 @@ def get_text_and_labels(data_dir='data', ids=None, split='both'):
     """
     if not os.path.exists(data_dir):
         with tarfile.open(_maybe_download(), 'r:gz') as datafile:
-            datafile.extractall(path=data_dir)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner) 
+                
+            
+            safe_extract(datafile, path=data_dir)
     filenames = [os.path.join(data_dir, f)
                  for f in os.listdir(data_dir) if re.search('sgm$', f)]
     data = []
@@ -187,7 +206,26 @@ def get_reuters(data_dir='data', level='word', min_reps=1, most_common=10000):
     if not os.path.exists(data_dir):
         with tarfile.open(_maybe_download(), 'r:gz') as datafile:
             logging.info('extracting archive')
-            datafile.extractall(path=data_dir)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner) 
+                
+            
+            safe_extract(datafile, path=data_dir)
     # we are just going to hold the data in memory
     filenames = [os.path.join(data_dir, f)
                  for f in os.listdir(data_dir) if re.search('sgm$', f)]
