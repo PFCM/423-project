@@ -173,7 +173,7 @@ def get_text_and_labels(data_dir='data', ids=None, split='both'):
                     if not is_within_directory(path, member_path):
                         raise Exception("Attempted Path Traversal in Tar File")
             
-                tar.extractall(path, members, numeric_owner) 
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
                 
             
             safe_extract(datafile, path=data_dir)
@@ -222,7 +222,7 @@ def get_reuters(data_dir='data', level='word', min_reps=1, most_common=10000):
                     if not is_within_directory(path, member_path):
                         raise Exception("Attempted Path Traversal in Tar File")
             
-                tar.extractall(path, members, numeric_owner) 
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
                 
             
             safe_extract(datafile, path=data_dir)
